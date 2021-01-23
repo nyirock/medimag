@@ -49,4 +49,4 @@ class TestFS(TestCase):
         assert_frame_equal(pd.DataFrame(columns=['quid', 'suid', 'iden',
                                                  'alen', 'mism', 'gapo',
                                                  'qsta', 'qend', 'ssta',
-                                                 'send', 'e_val', 'bits']), df)
+                                                 'send', 'eval', 'bits']), df)
