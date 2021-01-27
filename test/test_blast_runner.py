@@ -33,11 +33,13 @@ class TestBlastRunner(TestCase):
 
     def setUp(self) -> None:
         self.large_mg_fasta_path = os.path.join(TEST_DATA_DIR, 'mg_large.fasta')
+        self.large_mg_fasta_path_gz = os.path.join(TEST_DATA_DIR, 'mg_large.fasta.gz')
         self.large_mg_blast_out_sname = "mg_large"
         self.large_mg_blast_out_path = os.path.join(TEST_DATA_DIR, BLAST_DIR_NAME, 'mg_large.tab')
         self.large_mg_blast_expected_name = os.path.join(TEST_DATA_DIR, "recruited_mg_0.tab")
 
         self.no_pmoA_hits_fasta_path = os.path.join(TEST_DATA_DIR, "mg_no_pmoA_hits.fasta")
+        self.no_pmoA_hits_fasta_path_gz = os.path.join(TEST_DATA_DIR, "mg_no_pmoA_hits.fasta.gz")
         self.no_pmoA_blast_out_sname = "mg_no_pmoA_hits"
         self.no_pmoA_blast_out_path = os.path.join(TEST_DATA_DIR, "mg_no_pmoA_hits.tab")
 
@@ -57,5 +59,15 @@ class TestBlastRunner(TestCase):
 
     def test_run_blast_parallel_large_empty(self):
         self.__class__.blast_runner.run_blast_parallel(self.no_pmoA_hits_fasta_path, self.no_pmoA_blast_out_sname)
+        with self.assertRaises(pd.errors.EmptyDataError):
+            pd.read_csv(self.no_pmoA_blast_out_path)
+
+    def test_run_blast_parallel_large_non_empty_gzipped(self):
+        out_path = self.__class__.blast_runner.run_blast_parallel(self.large_mg_fasta_path_gz, self.large_mg_blast_out_sname)
+        mg_large_blast_df = pd.read_csv(out_path, sep='\t', header=None).sort_values(by=[0, 1], ignore_index=True)
+        assert_frame_equal(self.mg_large_blast_expected, mg_large_blast_df)
+
+    def test_run_blast_parallel_large_empty_gzipped(self):
+        self.__class__.blast_runner.run_blast_parallel(self.no_pmoA_hits_fasta_path_gz, self.no_pmoA_blast_out_sname)
         with self.assertRaises(pd.errors.EmptyDataError):
             pd.read_csv(self.no_pmoA_blast_out_path)

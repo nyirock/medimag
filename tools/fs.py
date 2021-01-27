@@ -6,6 +6,10 @@ import pandas as pd
 
 from config import BLAST_DIR_NAME, BLAST_DB_NAME
 
+def is_gzipped(filepath):
+    with open(filepath, 'rb') as test_f:
+        return test_f.read(2) == b'\x1f\x8b'
+
 #TODO: use single function once the result congruence is verified
 def write_df_to_csv(df, path):
     df.to_csv(path, sep='\t')

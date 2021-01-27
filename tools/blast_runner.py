@@ -27,6 +27,7 @@ from subprocess import Popen, PIPE
 
 from config import E_VAL
 from tools.ext_process import run_external_command
+from tools.fs import is_gzipped
 
 
 class BlastRunner():
@@ -47,9 +48,17 @@ class BlastRunner():
 
 
     def run_blast_parallel(self, input_path, sname):
+        """
+        Runs blastn as an external command. Automatically detects gzipped inputs.
+        :param input_path: fasta file with blast queries
+        :param sname: sample name
+        :return: path to the blast hits output
+        """
         out_path = os.path.join(self.blast_dir_path, sname+".tab")
         cmd = f"cat {input_path} | parallel --block 10M --recstart '>' --pipe \
         blastn  -outfmt \\'\"6 {self.column_headers} \\'\" -evalue {self.e_val} -db {self.db_path_w_name}  -query -  > {out_path}"
+        if input_path.endswith("gz") or is_gzipped(input_path):
+            cmd = "z"+cmd
         run_external_command(cmd)
         return out_path
 

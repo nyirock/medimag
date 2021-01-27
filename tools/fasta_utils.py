@@ -1,6 +1,11 @@
-from Bio import SeqIO
+import os
+import shutil
+import tempfile
 
+from Bio import SeqIO
+import gzip
 from tools.ext_process import run_external_command
+from tools.fs import is_gzipped
 
 
 def parse_contigs_ind(filepath):
@@ -8,8 +13,15 @@ def parse_contigs_ind(filepath):
     Returns sequences index from the input files(s)
     remember to close index object after use
     """
-    with open(filepath):
-        record_dict = SeqIO.index(filepath, "fasta")
+    if filepath.endswith("gz") or is_gzipped(filepath):
+        with tempfile.NamedTemporaryFile(mode='wt') as tf:
+            with gzip.open(filepath, 'rt') as f_gz:
+                shutil.copyfileobj(f_gz, tf)
+            temp_file_path = os.path.join(tempfile.gettempdir(), tf.name)
+            record_dict = SeqIO.index(temp_file_path, "fasta")
+    else:
+        with open(filepath):
+            record_dict = SeqIO.index(filepath, "fasta")
     return record_dict
 
 def write_recruited_reads_to_fasta(df, all_records, outfile):

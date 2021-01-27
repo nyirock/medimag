@@ -23,7 +23,7 @@ from tools.make_sample_file import make_sample_file, get_sample_file_dct
 
 # WORKDIR_PATH = os.path.abspath("out")
 # INPUT_DIR_PATH = os.path.abspath("/media/andriy/linuxData/mg/m7_mg/_error_corrected_reads/")
-WORKDIR_PATH = os.path.abspath("out_m7_basic_workflow2")
+WORKDIR_PATH = os.path.abspath("out_m7_fast_workflow2_gzipped")
 #WORKDIR_PATH = os.path.abspath("/media/andriy/SeagateExpansionDrive/out_large_2pp_closest_delta_pmoA/")
 INPUT_DIR_PATH = os.path.abspath("in")
 
@@ -57,8 +57,9 @@ INPUT_DIR_PATH = os.path.abspath("in")
 
 def fastq_reformat_workflow(sample_file_dct,
                             workdir_path,
-                            input_dir_path):
-    fr = FastqReformatter(workdir_path)
+                            input_dir_path,
+                            gzipped=False):
+    fr = FastqReformatter(workdir_path, gzipped=gzipped)
 
     # file_path_lst = list(map(lambda x: os.path.join(INPUT_DIR_PATH, x), file_lst))
     # print(file_path_lst)
@@ -147,14 +148,14 @@ def init_sample_file(workdir_path, input_dir_path, file_mask="*", identify_pairs
 ####################High-Level Workflows##########################################
 ##################################################################################
 
-def run_basic_workflow(workdir_path, input_dir_path, reference_path, sample_file_dict=None,
-                       identify_pairs=False, file_mask="*fastq*gz"):
+def run_basic_workflow(workdir_path, input_dir_path, reference_path,
+                       sample_file_dict=None, identify_pairs=False, file_mask="*fastq*gz", gzipped=False):
     if not sample_file_dict:
         sf = init_sample_file(workdir_path, input_dir_path, file_mask=file_mask, identify_pairs=identify_pairs)
     else:
         sf = sample_file_dict
     pprint(sf)
-    refomat_dct = fastq_reformat_workflow(sf, workdir_path, input_dir_path)
+    refomat_dct = fastq_reformat_workflow(sf, workdir_path, input_dir_path, gzipped=gzipped)
     # reformat_sf = init_sample_file(WORKDIR_PATH, os.path.join(WORKDIR_PATH, ".rf_samples"),
     #                                "*rf.fasta", identify_pairs=False,
     #                               write_to_disk=False)
@@ -166,18 +167,19 @@ def run_basic_workflow(workdir_path, input_dir_path, reference_path, sample_file
     # blasted_sf = init_sample_file(WORKDIR_PATH, os.path.join(WORKDIR_PATH, "blast"), "*tab",
     #                               identify_pairs=False, write_to_disk=False)
     parsed_hits_dct = parse_blast_hits_workflow(refomat_dct, blasted_dct, reference_path, workdir_path)
+
     pprint(parsed_hits_dct)
 
 
 def run_fast_workflow(workdir_path, input_dir_path, reference_path,
-                      sample_file_dict=None, identify_pairs=False, file_mask="*fastq*gz"):
+                      sample_file_dict=None, identify_pairs=False, file_mask="*fastq*gz", gzipped=False):
     #init sample file from dictionary if none was supplied
     if not sample_file_dict:
         sf = init_sample_file(workdir_path, input_dir_path, file_mask=file_mask, identify_pairs=identify_pairs)
     else:
         sf = sample_file_dict
     pprint(sf)
-    refomat_dct = fastq_reformat_workflow(sf, workdir_path, input_dir_path)
+    refomat_dct = fastq_reformat_workflow(sf, workdir_path, input_dir_path, gzipped=gzipped)
     # reformat_sf = init_sample_file(WORKDIR_PATH, os.path.join(WORKDIR_PATH, ".rf_samples"),
     #                                "*rf.fasta", identify_pairs=False,
     #                               write_to_disk=False)
@@ -327,5 +329,20 @@ if __name__ == "__main__":
     init_sample_file(WORKDIR_PATH, INPUT_DIR_PATH,identify_pairs=False, file_mask="*fastq.gz")
     sample_file = load_sample_from_disk_to_dict(WORKDIR_PATH)
     pprint(sample_file)
-    run_basic_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH, sample_file_dict=sample_file)
-    #run_fast_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH, sample_file_dict=sample_file)
+    #run_basic_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH, sample_file_dict=sample_file)
+    run_fast_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH, sample_file_dict=sample_file, gzipped=True)
+
+    #### Fixing gzip capability
+    # reformat_sf = init_sample_file(WORKDIR_PATH, os.path.join(WORKDIR_PATH, ".rf_samples"),
+    #                                                               "*rf.fasta*", identify_pairs=False,
+    #                                                              write_to_disk=False)
+    # reformat_sf = add_path_to_sample_dct(reformat_sf, os.path.join(WORKDIR_PATH, ".rf_samples"))
+    # pprint(reformat_sf)
+    #
+    # blasted_sf = init_sample_file(WORKDIR_PATH, os.path.join(WORKDIR_PATH, "blast"), "*tab",
+    #                                identify_pairs=False, write_to_disk=False)
+    # blasted_sf = add_path_to_sample_dct(blasted_sf, os.path.join(WORKDIR_PATH, "blast"))
+    #
+    # pprint(blasted_sf)
+    # parsed_dct = parse_blast_hits_workflow(reformat_sf, blasted_sf, REFERENCE_PATH, WORKDIR_PATH)
+    # pprint(parsed_dct)
