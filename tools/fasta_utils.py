@@ -1,5 +1,7 @@
 from Bio import SeqIO
 
+from tools.ext_process import run_external_command
+
 
 def parse_contigs_ind(filepath):
     """
@@ -25,6 +27,13 @@ def get_nt_size(record_dict):
     Receives record_dict.
     """
     return sum(len(seq) for seq in record_dict.values())
+
+def get_nt_size_ext(file_path):
+    cmd = "seqkit stats -T "+file_path
+    output = run_external_command(cmd).split()
+    n_seq = int(float(output[-5]))
+    nt_sz = int(float(output[-4]))
+    return (n_seq, nt_sz)
 
 def retrive_sequence(contig_lst, rec_dic):
     """

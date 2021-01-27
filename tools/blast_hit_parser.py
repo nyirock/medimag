@@ -15,16 +15,28 @@ from tools.fs import write_df_to_csv
 
 
 class BlastHitParser():
-    def __init__(self, sname2fname_tpl, ref_index, raw_blast_hit_df, outdir):
-        self.sname, self.input_file_fasta = sname2fname_tpl
+    #TODO: maye use inheritance to remove duplication in out_dir_name (inherit both this and BlastRunner from a parent)
+    def __init__(self, sname2fasta_path_tpl, ref_index, raw_blast_hit_df_path, workdir_path,
+                 outdir_name="blast", custom_blast_columns_lst=[]):
+        self.blast_columns = ['quid', 'suid', 'iden', 'alen',
+                              'mism', 'gapo', 'qsta', 'qend',
+                              'ssta', 'send', 'eval', 'bits'] + custom_blast_columns_lst
+        self.workdir_path = workdir_path
+        self.sname, self.input_fasta_path = sname2fasta_path_tpl
         self.ref_index = ref_index
-        self.raw_blast_hit_df = raw_blast_hit_df
-        self.outdir = outdir
+        self.raw_blast_hit_df = self.load_blast_hits_to_df(raw_blast_hit_df_path)
+        self.outdir_name = outdir_name
         # print(len(self.ref_index))
         # print(len(self.raw_blast_hit_df))
 
+    def get_sample_name(self):
+        return self.sname
+
+    def get_out_dir_path(self):
+        return os.path.join(self.workdir_path, self.outdir_name)
+
     def parse_blast_hits(self):
-        input_file_index = parse_contigs_ind(self.input_file_fasta)
+        input_file_index = parse_contigs_ind(self.input_fasta_path)
         input_file_nt_size = get_nt_size(input_file_index)
 
         recruited_mg = self._unique_scaffold_topBits(self.raw_blast_hit_df)
@@ -36,10 +48,25 @@ class BlastHitParser():
 
 
 
-        outfile = os.path.join(self.outdir, self.sname)
-        write_df_to_csv(recruited_mg, outfile+".csv")
-        write_recruited_reads_to_fasta(recruited_mg, input_file_index, outfile+".fasta")
+        outfile_path = os.path.join(self.workdir_path, self.outdir_name, self.sname)
+        outfile_path_csv = outfile_path + ".csv"
+        write_df_to_csv(recruited_mg, outfile_path_csv)
+        write_recruited_reads_to_fasta(recruited_mg, input_file_index, outfile_path+".fasta")
         input_file_index.close()
+        
+        return outfile_path_csv
+
+
+    def load_blast_hits_to_df(self, filepath):
+        #these come accordingly with blast runner
+
+        blast_cols = self.blast_columns
+        try:
+            df = pd.read_csv(filepath, sep="\t", header=None)
+        except pd.errors.EmptyDataError:
+            df = pd.DataFrame(columns=blast_cols)  # making an empty dataframe
+        df.columns = blast_cols
+        return df
 
 
     def filter_hits(self, recruited_mg):
@@ -101,8 +128,7 @@ class BlastHitParser():
                 if row[12] > scaffolds[row[1]][12]:
                     scaffolds[row[1]] = row
         rows = scaffolds.values()
-        # variables=['quid', 'suid', 'iden', 'alen', 'mism', 'gapo', 'qsta', 'qend', 'ssta', 'send', 'e_val', 'bits']
-        df = pd.DataFrame([[getattr(i, j) for j in variables] for i in rows], columns=variables)
+        df = pd.DataFrame([[getattr(i, j) for j in variables] for i in rows], columns=self.blast_columns)
         return df
 
 
