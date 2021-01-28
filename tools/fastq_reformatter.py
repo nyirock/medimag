@@ -18,9 +18,11 @@ class FastqReformatter():
         self.out_fasta_dir_path = init_dir(workdir_path, self.out_fasta_dir_name, force_del=True)
 
     def run_fastq_reformatter(self, input_path_lst, sname):
-        out_path = os.path.join(self.out_fasta_dir_path, sname+".rf.fasta")
+
         if self.gzipped:
             out_path = os.path.join(self.out_fasta_dir_path, sname + ".rf.fasta.gz")
+        else:
+            out_path = os.path.join(self.out_fasta_dir_path, sname + ".rf.fasta")
         #reformat.sh in=$mg out=stdout.fasta | rename.sh in=stdin.fasta out=$name.fasta prefix=$name
 
         for input_path in input_path_lst:
