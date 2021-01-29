@@ -2,7 +2,7 @@ import os
 
 from tools.ext_process import run_external_command
 from tools.fs import init_dir
-from tools.util import remove_suffix
+from tools.util import remove_suffix, remove_common_substring
 
 
 class FastqReformatter():
@@ -27,10 +27,10 @@ class FastqReformatter():
 
         for input_path in input_path_lst:
             filename = os.path.basename(input_path)
-            prefix = remove_suffix(filename, ".fastq.gz")
-            cmd = f"reformat.sh in={input_path} out=stdout.fasta | rename.sh in=stdin.fasta out=stdout.fasta prefix={prefix} >> {out_path}"
+            prefix = remove_common_substring(filename)
+            cmd = f"reformat.sh -Xmx2g in={input_path} out=stdout.fasta | rename.sh app=t in=stdin.fasta out=stdout.fasta prefix={prefix} out={out_path}"
             if self.gzipped:
-                cmd = f"reformat.sh in={input_path} out=stdout.fasta | rename.sh in=stdin.fasta out=stdout.fasta prefix={prefix} | gzip >> {out_path}"
+                cmd = f"reformat.sh -Xmx2g in={input_path} out=stdout.fasta | rename.sh app=t in=stdin.fasta out=stdout.fasta prefix={prefix} out={out_path}"
 
             run_external_command(cmd)
 

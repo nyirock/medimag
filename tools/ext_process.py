@@ -9,4 +9,4 @@ def run_external_command(cmd):
         raise RuntimeError(f"process {process.args} failed with code {process.returncode}:\n {stdout} {stderr}")
     else:
         # print(stdout)
-        return stdout
+        return stdout or stderr

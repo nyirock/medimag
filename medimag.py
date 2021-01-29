@@ -8,6 +8,7 @@ import os
 #from tools.blast_hit_parser import BlastHitParser
 
 import time
+from collections import defaultdict
 from pprint import pprint
 
 from tools.blast_hit_parser import BlastHitParser
@@ -15,6 +16,7 @@ from tools.blast_hit_parser_fast import BlastHitParserFast
 from tools.blast_runner import BlastRunner
 from config import BLAST_DIR_NAME, BLAST_DB_NAME, WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH
 from tools.blast_runner_custom import BlastRunnerCustom
+from tools.fastq_qc import FastqQC
 from tools.fastq_reformatter import FastqReformatter
 from tools.fs import init_dir, write_sample_file_to_disk, load_sample_file_from_disk, load_blast_hits_to_df, \
     write_dct_to_csv, write_sample_file_dct_to_disk, load_sample_from_disk_to_dict
@@ -23,10 +25,12 @@ from tools.make_sample_file import make_sample_file, get_sample_file_dct
 
 # WORKDIR_PATH = os.path.abspath("out")
 # INPUT_DIR_PATH = os.path.abspath("/media/andriy/linuxData/mg/m7_mg/_error_corrected_reads/")
-WORKDIR_PATH = os.path.abspath("out_m7_fast_workflow2_gzipped")
+WORKDIR_PATH = os.path.abspath("several_mg_raw_doubles_combined_basic_w_qc_no_gz_paired")
 #WORKDIR_PATH = os.path.abspath("/media/andriy/SeagateExpansionDrive/out_large_2pp_closest_delta_pmoA/")
-INPUT_DIR_PATH = os.path.abspath("in")
+INPUT_DIR_PATH = os.path.abspath("several_mg_raw_basic_w_qc_gz_paired/.qc_samples/")
 
+# INPUT_DIR_PATH="in_gz_glitch"
+# WORKDIR_PATH="in_gz_glitch"
 #input_files = glob("in/*.csv")
 
 # sample2filename = {'m71y2': ['in/m71y2_m71y_m7_to_pmoA_e_0.0001_iden_45.0%_alen_70.0%_recruited_mg_0.csv',
@@ -54,6 +58,30 @@ INPUT_DIR_PATH = os.path.abspath("in")
 # sample_file_upd = load_sample_file_from_disk(WORKDIR_PATH)
 # assert sample_file.equals(sample_file_upd), "testing if loading is done correctly"
 #sample_file_dct = get_sample_file_dct(INPUT_DIR_PATH, "*fastq*.gz")
+
+def fastq_qc_workflow(sample_file_dct,
+                            workdir_path,
+                            input_dir_path,
+                            gzipped=True):
+    fqc = FastqQC(workdir_path, gzipped=gzipped)
+
+    # file_path_lst = list(map(lambda x: os.path.join(INPUT_DIR_PATH, x), file_lst))
+    # print(file_path_lst)
+    # to_process = {"m7_1y":  ["m7_1y_R1_bbduk2.fastq.00.0_0.cor.fastq.gz",
+    #                          "m7_1y_R2_bbduk2.fastq.00.0_0.cor.fastq.gz",
+    #                          "m7_1y_R_unpaired.00.0_0.cor.fastq.gz"]}
+    # print(to_process)
+
+    qc_fastq = defaultdict(list)
+    for sname, file_lst in sample_file_dct.items():
+        assert len(file_lst) <= 2, "Max of 2 files are allowed per sample"
+        for sname, file_lst in sample_file_dct.items():
+            qc_fastq[sname] = fqc.run_fastq_qc(
+                list(map(lambda x: os.path.join(input_dir_path, x), file_lst)), sname)
+        pprint(qc_fastq)
+        write_dct_to_csv(qc_fastq, fqc.out_fasta_dir_path, ".fastq_qc.log")
+        return qc_fastq
+
 
 def fastq_reformat_workflow(sample_file_dct,
                             workdir_path,
@@ -136,10 +164,10 @@ def parse_blast_hits_fast_workflow(sname_to_fasta_dict, blasted_dct, reference_p
     write_dct_to_csv(parsed_dct, hp.get_out_dir_path(), ".hit_parser.log")
     return parsed_dct
 
-def init_sample_file(workdir_path, input_dir_path, file_mask="*", identify_pairs=True,
+def init_sample_file(workdir_path, input_dir_path, file_mask="*", identify_pairs=True, strict_pairs=False,
                      sample_file_name="sample_file.tsv", write_to_disk=True):
     init_dir(workdir_path)
-    sample_file_dct = get_sample_file_dct(input_dir_path, ext=file_mask, identify_pairs=identify_pairs)
+    sample_file_dct = get_sample_file_dct(input_dir_path, ext=file_mask, identify_pairs=identify_pairs, strict_pairs=strict_pairs)
     if write_to_disk:
         write_sample_file_dct_to_disk(sample_file_dct, workdir_path, file_name=sample_file_name)
     return sample_file_dct
@@ -149,7 +177,8 @@ def init_sample_file(workdir_path, input_dir_path, file_mask="*", identify_pairs
 ##################################################################################
 
 def run_basic_workflow(workdir_path, input_dir_path, reference_path,
-                       sample_file_dict=None, identify_pairs=False, file_mask="*fastq*gz", gzipped=False):
+                       sample_file_dict=None, identify_pairs=False, file_mask="*fastq*gz",
+                       gzipped=False, qc=False):
     if not sample_file_dict:
         sf = init_sample_file(workdir_path, input_dir_path, file_mask=file_mask, identify_pairs=identify_pairs)
     else:
@@ -171,26 +200,48 @@ def run_basic_workflow(workdir_path, input_dir_path, reference_path,
     pprint(parsed_hits_dct)
 
 
-def run_fast_workflow(workdir_path, input_dir_path, reference_path,
-                      sample_file_dict=None, identify_pairs=False, file_mask="*fastq*gz", gzipped=False):
+def run_workflow(workdir_path, input_dir_path, reference_path, workflow ="fast",
+                 sample_file_dict=None, identify_pairs=False, file_mask="*fastq.gz", gzipped=False, qc=False):
     #init sample file from dictionary if none was supplied
-    if not sample_file_dict:
-        sf = init_sample_file(workdir_path, input_dir_path, file_mask=file_mask, identify_pairs=identify_pairs)
+
+    if (not sample_file_dict) and qc:
+        sf = init_sample_file(workdir_path, input_dir_path, file_mask=file_mask, identify_pairs=identify_pairs, strict_pairs=True)
+    elif (not sample_file_dict) and (not qc):
+        sf = init_sample_file(workdir_path, input_dir_path, file_mask=file_mask, identify_pairs=identify_pairs,
+                              strict_pairs=False)
     else:
         sf = sample_file_dict
     pprint(sf)
-    refomat_dct = fastq_reformat_workflow(sf, workdir_path, input_dir_path, gzipped=gzipped)
+    if qc:
+        qc_dct = fastq_qc_workflow(sf, workdir_path, input_dir_path, gzipped=gzipped)
+        pprint(qc_dct)
+        #TODO: use dynamic qc folder instead of a constant "qc_samples"
+        #TODO: find a better way for file mask
+        if not gzipped:
+            file_mask = "*fastq"
+        qc_dct2 = init_sample_file(workdir_path, os.path.join(workdir_path, ".qc_samples"), file_mask=file_mask, identify_pairs=identify_pairs, strict_pairs=False)
+        pprint(qc_dct2)
+        refomat_dct = fastq_reformat_workflow(qc_dct2, workdir_path, os.path.join(workdir_path, ".qc_samples"), gzipped=gzipped)
+    else:
+        refomat_dct = fastq_reformat_workflow(sf, workdir_path, input_dir_path, gzipped=gzipped)
     # reformat_sf = init_sample_file(WORKDIR_PATH, os.path.join(WORKDIR_PATH, ".rf_samples"),
     #                                "*rf.fasta", identify_pairs=False,
     #                               write_to_disk=False)
     # reformat_sf2 = add_path_to_sample_dct(reformat_sf, os.path.join(WORKDIR_PATH, ".rf_samples"))
     # pprint(reformat_sf2)
     # pprint(refomat_dct)
-    blasted_dct = custom_blast_workflow(refomat_dct, reference_path, workdir_path)
-    pprint(blasted_dct)
-    # blasted_sf = init_sample_file(WORKDIR_PATH, os.path.join(WORKDIR_PATH, "blast"), "*tab",
-    #                               identify_pairs=False, write_to_disk=False)
-    parsed_hits_dct = parse_blast_hits_fast_workflow(refomat_dct, blasted_dct, reference_path, workdir_path)
+    if workflow == "fast":
+        blasted_dct = custom_blast_workflow(refomat_dct, reference_path, workdir_path)
+        pprint(blasted_dct)
+        # blasted_sf = init_sample_file(WORKDIR_PATH, os.path.join(WORKDIR_PATH, "blast"), "*tab",
+        #                               identify_pairs=False, write_to_disk=False)
+        parsed_hits_dct = parse_blast_hits_fast_workflow(refomat_dct, blasted_dct, reference_path, workdir_path)
+    elif workflow == "basic":
+        blasted_dct = blast_workflow(refomat_dct, reference_path, workdir_path)
+        pprint(blasted_dct)
+        # blasted_sf = init_sample_file(WORKDIR_PATH, os.path.join(WORKDIR_PATH, "blast"), "*tab",
+        #                               identify_pairs=False, write_to_disk=False)
+        parsed_hits_dct = parse_blast_hits_workflow(refomat_dct, blasted_dct, reference_path, workdir_path)
     pprint(parsed_hits_dct)
 
 # def main():
@@ -326,23 +377,45 @@ def add_path_to_sample_dct(sample_dct, dir_path):
 
 
 if __name__ == "__main__":
-    init_sample_file(WORKDIR_PATH, INPUT_DIR_PATH,identify_pairs=False, file_mask="*fastq.gz")
-    sample_file = load_sample_from_disk_to_dict(WORKDIR_PATH)
-    pprint(sample_file)
-    #run_basic_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH, sample_file_dict=sample_file)
-    run_fast_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH, sample_file_dict=sample_file, gzipped=True)
+    #init_sample_file(WORKDIR_PATH, INPUT_DIR_PATH,identify_pairs=False, file_mask="*fastq.gz")
+    # sample_file = load_sample_from_disk_to_dict(WORKDIR_PATH)
+    # pprint(sample_file)
+    #those two should be identical
+    #run_basic_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH, identify_pairs=True, gzipped=True)
+
+    #init_sample_file(WORKDIR_PATH, INPUT_DIR_PATH, identify_pairs=True, file_mask="*fastq.gz", write_to_disk=True )
+    sf = load_sample_from_disk_to_dict(WORKDIR_PATH)
+    pprint(sf)
+
+    run_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH,sample_file_dict=sf, identify_pairs=True, gzipped=True, workflow='basic',
+                 qc=False)
+    #run_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH, identify_pairs=True, gzipped=True, workflow='basic', qc=True)
+
+    #run_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH, gzipped=False, qc=True, identify_pairs=True)
+    # run_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH, gzipped=True, qc=False,
+    #                   identify_pairs=False)
+
+
+
+    # Testing FasgtQC module
+    # raw_sample_file_strict_pairs = init_sample_file(WORKDIR_PATH, INPUT_DIR_PATH, sample_file_name="qc_samples.tsv",
+    #                                                 file_mask="*fastq*gz", identify_pairs=True, strict_pairs=True)
+    # pprint(raw_sample_file_strict_pairs)
+    # qc_sample_dct = fastq_qc_workflow(raw_sample_file_strict_pairs, WORKDIR_PATH, INPUT_DIR_PATH)
+    # pprint(qc_sample_dct)
 
     #### Fixing gzip capability
-    # reformat_sf = init_sample_file(WORKDIR_PATH, os.path.join(WORKDIR_PATH, ".rf_samples"),
+    # reformat_sf = init_sample_file(WORKDIR_PATH, WORKDIR_PATH,
     #                                                               "*rf.fasta*", identify_pairs=False,
     #                                                              write_to_disk=False)
-    # reformat_sf = add_path_to_sample_dct(reformat_sf, os.path.join(WORKDIR_PATH, ".rf_samples"))
+    # reformat_sf = add_path_to_sample_dct(reformat_sf, WORKDIR_PATH)
     # pprint(reformat_sf)
-    #
-    # blasted_sf = init_sample_file(WORKDIR_PATH, os.path.join(WORKDIR_PATH, "blast"), "*tab",
-    #                                identify_pairs=False, write_to_disk=False)
-    # blasted_sf = add_path_to_sample_dct(blasted_sf, os.path.join(WORKDIR_PATH, "blast"))
-    #
+    # #
+    # blasted_sf = init_sample_file(WORKDIR_PATH, WORKDIR_PATH, "*tab", identify_pairs=False, write_to_disk=False)
     # pprint(blasted_sf)
+    # blasted_sf = add_path_to_sample_dct(blasted_sf, WORKDIR_PATH)
+    # print(blasted_sf)
+    # #
+    # # pprint(blasted_sf)
     # parsed_dct = parse_blast_hits_workflow(reformat_sf, blasted_sf, REFERENCE_PATH, WORKDIR_PATH)
     # pprint(parsed_dct)
