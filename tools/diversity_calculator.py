@@ -1,9 +1,12 @@
+import os
 from collections import namedtuple
 from typing import List
 import pandas as pd
 import numpy as np
 import numpy as np
 from statsmodels.stats.weightstats import DescrStatsW
+
+from tools.fs import init_dir
 
 Concordance = namedtuple('Concordance', 'mean std sem')
 
@@ -26,21 +29,23 @@ class DiversityCalculator(object):
     Common diversity indices from scikit-bio like:
     - Shannon, Chao1, Faith_pd, etc. Need to convert to integer counts if needed.
     """
-    def __init__(self, fnames_lst: List, sample_name: str):
+    def __init__(self, sname2parsed_hits_path_tpl, workdir_path, fasta_path=None, outdir_name="diversity"):
         """
         Import csv-files as a dataframe and merge the resultant dataframe.
-        :param fnames_lst:  List of csv-filenames to process
-        :param sample_name: String file name
+        :param sname2fasta_path_tpl:  Tuple containing sample name and fasta path: as in fastq_reformat_workflow output
         """
         self.no_hits = False
-        self.sample_name = sample_name
-        self.reference_hits = self._load_hits(fnames_lst)
+        self.workdir_path = workdir_path
+        self.sname, self.reference_hits_path = sname2parsed_hits_path_tpl
+        self.fasta_path = fasta_path
+        self.outdir_path = os.path.join(workdir_path, outdir_name)
+        self.reference_hits = self._load_hits(self.reference_hits_path)
         if not len(self.reference_hits):
             self.no_hits = True
             #TODO: implement better the case for no hits
             return
         self._convert_iden_percent_to_frac()
-        self.reference_hit_summary = self._summarize_reference_hits()
+        self.reference_hit_summary = self._summarize_reference_hits(self.reference_hits)
         self.concordance = Concordance(*self._calculate_concordance_stats())
 
     ######################################
@@ -48,14 +53,14 @@ class DiversityCalculator(object):
     ######################################
 
     def __str__(self):
-        return f"Sample name: {self.sample_name}\n" \
+        return f"Sample name: {self.sname}\n" \
                f"\tConcordance Statistics:\n" \
                f"{'Concordance mean:':<35}{self.concordance.mean:>10}\n" \
                f"{'Concordance standard deviation:':<35}{self.concordance.std:>10}\n"\
                f"{'Concordance standard error:':<35}{self.concordance.sem:>10}\n"
 
     def __repr__(self):
-        return f"<DiversityCalculator(sample_name={self.sample_name}), "\
+        return f"<DiversityCalculator(sname={self.sname}), "\
                f"concordance={self.concordance}>"
 
 
@@ -80,9 +85,37 @@ class DiversityCalculator(object):
 
         return (concrordance_stats.mean, concrordance_stats.std, concordance_sem)
 
+    ######################################################
+    ##########Printing Methods############################
+    ######################################################
 
-    def _summarize_reference_hits(self):
-        pass
+    def print_reference_hits_summary(self):
+        with pd.option_context('display.max_rows', None, 'display.max_columns',
+                               None):  # more options can be specified also
+            print(self.reference_hit_summary)
+
+    ######################################################
+    ###########Private Methods############################
+    ######################################################
+
+    def _summarize_reference_hits(self, df):
+
+        def summarize_output(x):
+            d = {}
+            d['Ref_Size'] = x['Ref_size'].mean()
+            d['Total_Reads'] = x['suid'].count()
+            d['Total_aligned_nt'] = x['alen'].sum()
+            d['Total_RPKM'] = x['Read_RPKM'].sum()
+            d['Theoretical_Copies'] = d['Total_aligned_nt'] / d['Ref_Size']
+            d['Total_RPKM_wt'] = x['Read_RPKM_wt'].sum()
+            d['Average_iden'] = x['iden'].mean()
+            d['Iden_VAR'] = 0 if d['Total_Reads'] == 1 else x['iden'].var()
+            d['Iden_STD'] = d['Iden_VAR'] ** 0.5
+            d['Iden_SEM'] = d['Iden_STD'] / d['Total_Reads'] ** 0.5
+
+            return pd.Series(d, index=list(d.keys()))
+
+        return df.groupby('suid').apply(summarize_output)
 
     def _convert_iden_percent_to_frac(self):
         """
@@ -93,7 +126,7 @@ class DiversityCalculator(object):
         self.reference_hits['iden'] = self.reference_hits['iden'] / 100.0
 
     @staticmethod
-    def _load_hits(fnames_lst: List):
+    def _load_hits(file_path):
         """
         Reads hit summary from blast runner
         :param fnames_lst: list of input filenames
@@ -102,13 +135,6 @@ class DiversityCalculator(object):
         df_lst = []
         empty_lst = []
 
-        for fname in fnames_lst:
-            hit_data = pd.read_csv(fname, sep='\t')
-            if(len(hit_data)):
-                df_lst.append(hit_data)
-            else:
-                empty_lst.append(hit_data)
-        if df_lst:
-            return pd.concat(df_lst, axis=0).drop("Unnamed: 0",axis=1)
-        else:
-            return pd.concat(empty_lst, axis=0).drop("Unnamed: 0", axis=1)
+        hit_data = pd.read_csv(file_path, sep='\t')
+        return hit_data.drop("Unnamed: 0", axis=1)
+

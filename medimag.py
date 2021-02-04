@@ -16,6 +16,7 @@ from tools.blast_hit_parser_fast import BlastHitParserFast
 from tools.blast_runner import BlastRunner
 from config import BLAST_DIR_NAME, BLAST_DB_NAME, WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH
 from tools.blast_runner_custom import BlastRunnerCustom
+from tools.diversity_calculator import DiversityCalculator
 from tools.fastq_qc import FastqQC
 from tools.fastq_reformatter import FastqReformatter
 from tools.fs import init_dir, write_sample_file_to_disk, load_sample_file_from_disk, load_blast_hits_to_df, \
@@ -23,11 +24,12 @@ from tools.fs import init_dir, write_sample_file_to_disk, load_sample_file_from_
 from tools.fasta_utils import parse_contigs_ind
 from tools.make_sample_file import make_sample_file, get_sample_file_dct
 
-# WORKDIR_PATH = os.path.abspath("out")
+WORKDIR_PATH = os.path.abspath("out_m71y_paired_no_qc_gzipped")
+INPUT_DIR_PATH = os.path.abspath("in_m71y")
 # INPUT_DIR_PATH = os.path.abspath("/media/andriy/linuxData/mg/m7_mg/_error_corrected_reads/")
-WORKDIR_PATH = os.path.abspath("several_mg_raw_doubles_combined_basic_w_qc_no_gz_paired")
+#WORKDIR_PATH = os.path.abspath("several_mg_raw_doubles_combined_basic_w_qc_no_gz_paired")
 #WORKDIR_PATH = os.path.abspath("/media/andriy/SeagateExpansionDrive/out_large_2pp_closest_delta_pmoA/")
-INPUT_DIR_PATH = os.path.abspath("several_mg_raw_basic_w_qc_gz_paired/.qc_samples/")
+#INPUT_DIR_PATH = os.path.abspath("several_mg_raw_basic_w_qc_gz_paired/.qc_samples/")
 
 # INPUT_DIR_PATH="in_gz_glitch"
 # WORKDIR_PATH="in_gz_glitch"
@@ -244,158 +246,28 @@ def run_workflow(workdir_path, input_dir_path, reference_path, workflow ="fast",
         parsed_hits_dct = parse_blast_hits_workflow(refomat_dct, blasted_dct, reference_path, workdir_path)
     pprint(parsed_hits_dct)
 
-# def main():
-#     ########################################################################
-#     sample_file_dct = load_sample_from_disk_to_dict(WORKDIR_PATH)
-#     pprint(sample_file_dct)
-#
-#     #########Running Fasta Reformat#########################################
-#
-#     fr = FastqReformatter(WORKDIR_PATH)
-#
-#     #file_path_lst = list(map(lambda x: os.path.join(INPUT_DIR_PATH, x), file_lst))
-#     #print(file_path_lst)
-#     # to_process = {"m7_1y":  ["m7_1y_R1_bbduk2.fastq.00.0_0.cor.fastq.gz",
-#     #                          "m7_1y_R2_bbduk2.fastq.00.0_0.cor.fastq.gz",
-#     #                          "m7_1y_R_unpaired.00.0_0.cor.fastq.gz"]}
-#     # print(to_process)
-#
-#     processed_fastq = {}
-#     for sname, file_lst in sample_file_dct.items():
-#          processed_fastq[sname] = fr.run_fastq_reformatter(list(map(lambda x: os.path.join(INPUT_DIR_PATH, x), file_lst)), sname)
-#
-#     pprint(processed_fastq)
-#     write_dct_to_csv(processed_fastq, fr.out_fasta_dir_path, ".fastq_reformat.log")
-#     ########################################################################
-#
-#
-#
-#
-#     #########Running Blast###################################################
-#     # sname = "m7_1y2"
-#     blast_runner = BlastRunner(REFERENCE_PATH, WORKDIR_PATH)
-#     blasted_dct = {}
-#     for sname, file_path in processed_fastq.items():
-#          blasted_dct[sname] = blast_runner.run_blast_parallel(file_path, sname)
-#
-#     pprint(blasted_dct)
-#     write_dct_to_csv(blasted_dct, blast_runner.blast_dir_path, ".blast_runner.log")
-#     ##########################################################################
-#
-#
-#     ##########Running Blast Hit Parser########################################
-#     print("Parsing Blast Hits Started")
-#     start = time.time()
-#     ref_index = parse_contigs_ind(REFERENCE_PATH)
-#     hit_parsers = []
-#     for sname, fasta_path in processed_fastq.items():
-#          hit_parsers.append(BlastHitParser((sname, fasta_path),
-#                                            ref_index,
-#                                            load_blast_hits_to_df(blasted_dct[sname]),
-#                                            WORKDIR_PATH))
-#     parsed_dct = {}
-#     for hp in hit_parsers:
-#         parsed_dct[hp.get_sample_name()] = hp.parse_blast_hits()
-#     print(f"Hits Parsing took: {time.time() - start}s")
-#
-#     pprint(parsed_dct)
-#     write_dct_to_csv(parsed_dct, hp.get_out_dir_path(), ".hit_parser.log")
-#     # raw_blast_hits_df = load_blast_hits_to_df(raw_blast_hits_path)
-#     # sname2processed_fasta_tpl = list(sample_name_to_processed_files_dct.items())[0]
-#     # bhp.parse_blast_hits()
-#
-#     ##########################################################################
-
-
-
-
-    #
-    #
-    # sample_file_dct = get_sample_file_dct(INPUT_DIR_PATH, "*fast*")
-    #
-    # #TODO: this is for the testing purposes only
-    # sample_name_to_processed_files_dct = {key: os.path.join(INPUT_DIR_PATH, val[0])for key,val in sample_file_dct.items()}
-    #
-    # print(sample_file_dct)
-
-    ### Parsing blast hits
-
-
-    # ref_index = parse_contigs_ind(REFERENCE_PATH)
-    # raw_blast_hits_df = load_blast_hits_to_df(raw_blast_hits_path)
-    # sname2processed_fasta_tpl = list(sample_name_to_processed_files_dct.items())[0]
-    # bhp = BlastHitParser(sname2processed_fasta_tpl, ref_index, raw_blast_hits_df, blast_dir)
-    # bhp.parse_blast_hits()
-    # print(df_0_diversity.concordance)
-    #
-    # print(m71y2_diversity.concordance)
-    #
-    # diversity_lst = []
-    # for sample_name, files_lst in sample2filename.items():
-    #     dc = DiversityCalculator(files_lst, sample_name)
-    #     if dc.no_hits:
-    #         continue
-    #     diversity_lst.append(dc)
-    #
-    # sorted_lst = sorted(diversity_lst, key=lambda x: x.concordance.mean)
-    #
-    # print(sorted_lst)
-    #
-    # for i in sorted_lst:
-    #     print(i)
-
-
 def add_path_to_sample_dct(sample_dct, dir_path):
     return {key: os.path.join(dir_path, val[0]) for key, val in sample_dct.items()}
 
-
-    # #main()
-    # sf = init_sample_file(WORKDIR_PATH, INPUT_DIR_PATH, "*fastq*gz", identify_pairs=False)
-    # pprint(sf)
-    # refomat_dct = fastq_reformat_workflow(sf, WORKDIR_PATH, INPUT_DIR_PATH)
-    # # reformat_sf = init_sample_file(WORKDIR_PATH, os.path.join(WORKDIR_PATH, ".rf_samples"),
-    # #                                "*rf.fasta", identify_pairs=False,
-    # #                               write_to_disk=False)
-    # # reformat_sf2 = add_path_to_sample_dct(reformat_sf, os.path.join(WORKDIR_PATH, ".rf_samples"))
-    # # pprint(reformat_sf2)
-    # #pprint(refomat_dct)
-    # blasted_dct = blast_workflow(refomat_dct, REFERENCE_PATH, WORKDIR_PATH)
-    # pprint(blasted_dct)
-    # # blasted_sf = init_sample_file(WORKDIR_PATH, os.path.join(WORKDIR_PATH, "blast"), "*tab",
-    # #                               identify_pairs=False, write_to_disk=False)
-    # parsed_hits_dct = parse_blast_hits_workflow(refomat_dct, blasted_dct, REFERENCE_PATH, WORKDIR_PATH)
-    # pprint(parsed_hits_dct)
-    # # blasted_sf2 = add_path_to_sample_dct(blasted_sf, os.path.join(WORKDIR_PATH, "blast"))
-    # #pprint(blasted_sf)
-    #
-    # # pprint(blasted_sf2)
-    # #parsed_dct = parse_blast_hits_workflow(reformat_sf2, blasted_sf2, REFERENCE_PATH, WORKDIR_PATH)
-    #
-    # # init_sample_file("/media/andriy/linuxData/mg/CAB_diversity/medimag/out_medimag/",
-    # #                  "/media/andriy/linuxData/mg/CAB_diversity/medimag/out_medimag/blast/",
-    # #                  "*csv", identify_pairs=False, sample_file_name="parsed_hits.tsv")
-
-
 if __name__ == "__main__":
-    #init_sample_file(WORKDIR_PATH, INPUT_DIR_PATH,identify_pairs=False, file_mask="*fastq.gz")
-    # sample_file = load_sample_from_disk_to_dict(WORKDIR_PATH)
-    # pprint(sample_file)
-    #those two should be identical
-    #run_basic_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH, identify_pairs=True, gzipped=True)
 
-    #init_sample_file(WORKDIR_PATH, INPUT_DIR_PATH, identify_pairs=True, file_mask="*fastq.gz", write_to_disk=True )
-    sf = load_sample_from_disk_to_dict(WORKDIR_PATH)
-    pprint(sf)
-
-    run_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH,sample_file_dict=sf, identify_pairs=True, gzipped=True, workflow='basic',
-                 qc=False)
+    # init_sample_file(WORKDIR_PATH, INPUT_DIR_PATH, identify_pairs=True, file_mask="*fastq.gz", write_to_disk=True, strict_pairs=False)
+    # sf = load_sample_from_disk_to_dict(WORKDIR_PATH)
+    # pprint(sf)
+    #
+    # run_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH,sample_file_dict=sf, identify_pairs=True, gzipped=True, workflow='basic',
+    #              qc=False)
     #run_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH, identify_pairs=True, gzipped=True, workflow='basic', qc=True)
 
     #run_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH, gzipped=False, qc=True, identify_pairs=True)
     # run_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH, gzipped=True, qc=False,
     #                   identify_pairs=False)
 
-
+    #Testing Diversity Calculator
+    dc = DiversityCalculator(("m7_1y2", "out_m71y_paired_no_qc_gzipped/blast/m7_1y2.csv"),
+                             "out_m71y_paired_no_qc_gzipped")
+    print(dc)
+    dc.print_reference_hits_summary()
 
     # Testing FasgtQC module
     # raw_sample_file_strict_pairs = init_sample_file(WORKDIR_PATH, INPUT_DIR_PATH, sample_file_name="qc_samples.tsv",
