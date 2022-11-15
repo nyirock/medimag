@@ -10,6 +10,7 @@ import os
 import time
 from collections import defaultdict
 from pprint import pprint
+import pandas as pd
 
 from tools.blast_hit_parser import BlastHitParser
 from tools.blast_hit_parser_fast import BlastHitParserFast
@@ -20,12 +21,14 @@ from tools.diversity_calculator import DiversityCalculator
 from tools.fastq_qc import FastqQC
 from tools.fastq_reformatter import FastqReformatter
 from tools.fs import init_dir, write_sample_file_to_disk, load_sample_file_from_disk, load_blast_hits_to_df, \
-    write_dct_to_csv, write_sample_file_dct_to_disk, load_sample_from_disk_to_dict
+    write_dct_to_csv, write_sample_file_dct_to_disk, load_sample_from_disk_to_dict, write_df_to_csv
 from tools.fasta_utils import parse_contigs_ind
 from tools.make_sample_file import make_sample_file, get_sample_file_dct
 
-WORKDIR_PATH = os.path.abspath("out_m71y_paired_no_qc_gzipped")
-INPUT_DIR_PATH = os.path.abspath("in_m71y")
+#WORKDIR_PATH = os.path.abspath("/media/andriy/SeagateExpansionDrive/out_medimag_pp_old_and_new_nmd_forest_river_qc")
+WORKDIR_PATH = os.path.abspath("out_binatota_bins_fastq")
+#INPUT_DIR_PATH = os.path.abspath("/media/andriy/SeagateExpansionDrive/pp_old_and_new_nmd_forest_river_qc/")
+INPUT_DIR_PATH = os.path.abspath("in_binatota_bins_fastq/")
 # INPUT_DIR_PATH = os.path.abspath("/media/andriy/linuxData/mg/m7_mg/_error_corrected_reads/")
 #WORKDIR_PATH = os.path.abspath("several_mg_raw_doubles_combined_basic_w_qc_no_gz_paired")
 #WORKDIR_PATH = os.path.abspath("/media/andriy/SeagateExpansionDrive/out_large_2pp_closest_delta_pmoA/")
@@ -146,7 +149,7 @@ def parse_blast_hits_workflow(sname_to_fasta_dict, blasted_dct, reference_path, 
     write_dct_to_csv(parsed_dct, hp.get_out_dir_path(), ".hit_parser.log")
     return parsed_dct
 
-def parse_blast_hits_fast_workflow(sname_to_fasta_dict, blasted_dct, reference_path, workdir_path):
+def parse_blast_hits_fast_workflow(sname_to_fasta_dict, blasted_dct, reference_path, workdir_path, genome_stats_log=True):
     print("Parsing Blast Hits Started")
     start = time.time()
     ref_index = parse_contigs_ind(reference_path)
@@ -156,7 +159,8 @@ def parse_blast_hits_fast_workflow(sname_to_fasta_dict, blasted_dct, reference_p
                                               ref_index,
                                               blasted_dct[sname],
                                               workdir_path,
-                                              custom_blast_columns_lst=['qlen']))
+                                              custom_blast_columns_lst=['qlen'],
+                                              genome_stats_log= genome_stats_log))
     parsed_dct = {}
     for hp in hit_parsers:
         parsed_dct[hp.get_sample_name()] = hp.parse_blast_hits()
@@ -179,7 +183,7 @@ def init_sample_file(workdir_path, input_dir_path, file_mask="*", identify_pairs
 ##################################################################################
 
 def run_basic_workflow(workdir_path, input_dir_path, reference_path,
-                       sample_file_dict=None, identify_pairs=False, file_mask="*fastq*gz",
+                       sample_file_dict=None, identify_pairs=False, file_mask="*fastq*",
                        gzipped=False, qc=False):
     if not sample_file_dict:
         sf = init_sample_file(workdir_path, input_dir_path, file_mask=file_mask, identify_pairs=identify_pairs)
@@ -203,7 +207,7 @@ def run_basic_workflow(workdir_path, input_dir_path, reference_path,
 
 
 def run_workflow(workdir_path, input_dir_path, reference_path, workflow ="fast",
-                 sample_file_dict=None, identify_pairs=False, file_mask="*fastq.gz", gzipped=False, qc=False):
+                 sample_file_dict=None, identify_pairs=False, file_mask="*fastq*", gzipped=False, qc=False, just_qc=False):
     #init sample file from dictionary if none was supplied
 
     if (not sample_file_dict) and qc:
@@ -217,6 +221,8 @@ def run_workflow(workdir_path, input_dir_path, reference_path, workflow ="fast",
     if qc:
         qc_dct = fastq_qc_workflow(sf, workdir_path, input_dir_path, gzipped=gzipped)
         pprint(qc_dct)
+        if just_qc:
+            return
         #TODO: use dynamic qc folder instead of a constant "qc_samples"
         #TODO: find a better way for file mask
         if not gzipped:
@@ -251,24 +257,47 @@ def add_path_to_sample_dct(sample_dct, dir_path):
 
 if __name__ == "__main__":
 
-    # init_sample_file(WORKDIR_PATH, INPUT_DIR_PATH, identify_pairs=True, file_mask="*fastq.gz", write_to_disk=True, strict_pairs=False)
-    # sf = load_sample_from_disk_to_dict(WORKDIR_PATH)
-    # pprint(sf)
-    #
-    # run_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH,sample_file_dict=sf, identify_pairs=True, gzipped=True, workflow='basic',
-    #              qc=False)
-    #run_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH, identify_pairs=True, gzipped=True, workflow='basic', qc=True)
+    #sf = init_sample_file(WORKDIR_PATH, os.path.join(WORKDIR_PATH, ".qc_samples"), identify_pairs=True, file_mask="*fastq.gz", write_to_disk=True, strict_pairs=False)
+    #pprint(sf)
+    #sf = load_sample_from_disk_to_dict(WORKDIR_PATH)
+    #pprint(sf)
+    # #
+    #run_workflow(WORKDIR_PATH, os.path.join(WORKDIR_PATH, ".qc_samples"), REFERENCE_PATH, sample_file_dict=sf, gzipped=True, workflow='fast', qc=False)
+    #run_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH, identify_pairs=False, gzipped=False, workflow='fast', qc=False)
+    run_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH, identify_pairs=True, gzipped=False, workflow='fast',
+                 qc=False)
+    #run_workflow(WORKDIR_PATH, os.path.join(WORKDIR_PATH, ".qc_samples"), REFERENCE_PATH, identify_pairs=True, gzipped=True, workflow='fast',
+    #             qc=False)
 
     #run_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH, gzipped=False, qc=True, identify_pairs=True)
     # run_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH, gzipped=True, qc=False,
     #                   identify_pairs=False)
 
     #Testing Diversity Calculator
-    dc = DiversityCalculator(("m7_1y2", "out_m71y_paired_no_qc_gzipped/blast/m7_1y2.csv"),
-                             "out_m71y_paired_no_qc_gzipped")
-    print(dc)
-    dc.print_reference_hits_summary()
+    # dc = DiversityCalculator(("m7_1y2", "out_m71y_paired_no_qc_gzipped/blast/m7_1y2.csv"),
+    #                          "out_m71y_paired_no_qc_gzipped")
+    # print(dc)
+    # dc.print_reference_hits_summary()
 
+    #################################################################################3
+    #Diversity calculator from csv-files
+    # csv_dct = init_sample_file(WORKDIR_PATH, INPUT_DIR_PATH, identify_pairs=False, file_mask="*csv", write_to_disk=True,
+    #                  strict_pairs=False)
+    #
+    # csv_dct_w_path = add_path_to_sample_dct(csv_dct, INPUT_DIR_PATH)
+    # pprint(csv_dct_w_path)
+    # dc_lst = []
+    # for sname,filepath in csv_dct_w_path.items():
+    #     dc_tmp = DiversityCalculator((sname, filepath), WORKDIR_PATH)
+    #     if dc_tmp.no_hits:
+    #         continue
+    #     dc_lst.append(dc_tmp)
+    #
+    # cnt_lst = map(DiversityCalculator.get_counts, dc_lst)
+    # names_lst = map(lambda x: x.sname, dc_lst)
+    # otu_table = pd.DataFrame(cnt_lst, index=names_lst).fillna(0).T
+    # write_df_to_csv(otu_table, os.path.join(WORKDIR_PATH, "otu_table.tsv"))
+    ##############################################################################
     # Testing FasgtQC module
     # raw_sample_file_strict_pairs = init_sample_file(WORKDIR_PATH, INPUT_DIR_PATH, sample_file_name="qc_samples.tsv",
     #                                                 file_mask="*fastq*gz", identify_pairs=True, strict_pairs=True)

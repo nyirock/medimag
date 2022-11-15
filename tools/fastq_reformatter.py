@@ -2,7 +2,7 @@ import os
 
 from tools.ext_process import run_external_command
 from tools.fs import init_dir
-from tools.util import remove_suffix, remove_common_substring
+from tools.utils import remove_suffix, remove_common_substring
 
 
 class FastqReformatter():

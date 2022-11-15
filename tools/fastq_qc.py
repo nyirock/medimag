@@ -1,7 +1,7 @@
 import os
 
 from tools.fs import init_dir
-from tools.util import remove_common_substring
+from tools.utils import remove_common_substring
 from tools.ext_process import run_external_command
 
 class FastqQC():

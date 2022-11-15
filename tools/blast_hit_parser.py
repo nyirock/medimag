@@ -2,6 +2,7 @@
 Placeholder for the hit parser class
 Could have a parent HitParser, with a child BlastHitParser to implement mg_wrapser functionality
 """
+import json
 import os
 
 import numpy as np
@@ -11,16 +12,20 @@ from Bio.SeqUtils import GC
 
 from config import ALEN_BP, IDEN, E_VAL, ALEN_PERCENT
 from tools.fasta_utils import parse_contigs_ind, get_nt_size, retrive_sequence, write_recruited_reads_to_fasta
-from tools.fs import write_df_to_csv
+from tools.fs import write_df_to_csv, write_dct_to_csv
 
 
 class BlastHitParser():
     #TODO: maye use inheritance to remove duplication in out_dir_name (inherit both this and BlastRunner from a parent)
     def __init__(self, sname2fasta_path_tpl, ref_index, raw_blast_hit_df_path, workdir_path,
-                 outdir_name="blast", custom_blast_columns_lst=[]):
+                 outdir_name="blast", logs_dir_name = "logs",
+                 custom_blast_columns_lst=[], genome_stats_log=False):
         self.blast_columns = ['quid', 'suid', 'iden', 'alen',
                               'mism', 'gapo', 'qsta', 'qend',
                               'ssta', 'send', 'eval', 'bits'] + custom_blast_columns_lst
+
+        self.fasta_stats_log = genome_stats_log
+        self.logs_dir_name = logs_dir_name
         self.workdir_path = workdir_path
         self.sname, self.input_fasta_path = sname2fasta_path_tpl
         self.ref_index = ref_index
@@ -38,7 +43,9 @@ class BlastHitParser():
     def parse_blast_hits(self):
         input_file_index = parse_contigs_ind(self.input_fasta_path)
         input_file_nt_size = get_nt_size(input_file_index)
-
+        input_file_read_cnt = len(input_file_index)
+        if self.write_genome_stats_log:
+            self.write_genome_stats_log(input_file_read_cnt, input_file_nt_size)
         recruited_mg = self._unique_scaffold_topBits(self.raw_blast_hit_df)
 
         self._calculate_metrics(input_file_index, input_file_nt_size, recruited_mg)
@@ -55,6 +62,15 @@ class BlastHitParser():
         input_file_index.close()
         
         return outfile_path_csv
+
+    def write_genome_stats_log(self, n_reads, total_bp, ext=".genome_stats.tsv"):
+        dir_path = os.path.join(self.workdir_path, self.outdir_name, self.logs_dir_name)
+
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+        data = {"number_of_reads": n_reads,
+                "total_base_pairs": total_bp}
+        write_dct_to_csv(data, dir_path, self.sname+ext)
 
 
     def load_blast_hits_to_df(self, filepath):

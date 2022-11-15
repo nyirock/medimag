@@ -47,6 +47,16 @@ class DiversityCalculator(object):
         self._convert_iden_percent_to_frac()
         self.reference_hit_summary = self._summarize_reference_hits(self.reference_hits)
         self.concordance = Concordance(*self._calculate_concordance_stats())
+        self.novelty = self.calculate_novelty()
+
+
+    ######################################
+    ########### Getters ##################
+    ######################################
+
+    def get_counts(self, by='Total_RPKM_wt'):
+        assert by in self.reference_hit_summary.columns, "counts_type not recognized"
+        return self.reference_hit_summary[by]
 
     ######################################
     ########### Overloaded methods #######
@@ -137,4 +147,7 @@ class DiversityCalculator(object):
 
         hit_data = pd.read_csv(file_path, sep='\t')
         return hit_data.drop("Unnamed: 0", axis=1)
+
+    def calculate_novelty(self):
+        return len(self.reference_hits[self.reference_hits.iden < self.concordance.mean])/len(self.reference_hits)
 

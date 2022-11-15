@@ -21,6 +21,15 @@ def write_dct_to_csv(dct, dir_path, filename, header=None):
         for key,val in dct.items():
             f.write(f"{key}\t{val}\n")
 
+def load_csv_to_dict(file_path):
+
+    dct = {}
+    with open(file_path, 'r') as f:
+        for line in f.readlines():
+            key, val = line.split("\t")
+            dct[key] = val
+    return dct
+
 def load_blast_hits_to_df(filepath):
     blast_cols = ['quid', 'suid', 'iden', 'alen', 'mism', 'gapo', 'qsta', 'qend', 'ssta', 'send', 'eval', 'bits']
     try:
@@ -44,6 +53,9 @@ def init_dir(path, inner_dir_name="", force_del=False):
     else:
         mkdir(inner_dir_path)
     return inner_dir_path
+
+
+
 
 
 def mkdir(inner_dir_path):

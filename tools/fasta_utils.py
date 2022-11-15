@@ -50,11 +50,22 @@ def get_nt_size(record_dict):
     return total_nt
 
 def get_nt_size_ext(file_path):
-    cmd = "seqkit stats -T "+file_path
-    output = run_external_command(cmd).split()
+    output = run_seqkit_stats(file_path)
     n_seq = int(float(output[-5]))
     nt_sz = int(float(output[-4]))
     return (n_seq, nt_sz)
+
+def get_nt_size_read_cnt_from_seqkit(output):
+    n_seq = int(float(output[-5]))
+    nt_sz = int(float(output[-4]))
+    return (n_seq, nt_sz)
+
+
+def run_seqkit_stats(file_path):
+    cmd = "seqkit stats -T " + file_path
+    output = run_external_command(cmd).split()
+    return output
+
 
 def retrive_sequence(contig_lst, rec_dic):
     """

@@ -8,7 +8,7 @@ import numpy as np
 from Bio.SeqUtils import GC
 
 from tools.blast_hit_parser import BlastHitParser
-from tools.fasta_utils import get_nt_size_ext
+from tools.fasta_utils import get_nt_size_ext, run_seqkit_stats, get_nt_size_read_cnt_from_seqkit
 from tools.fs import write_df_to_csv
 
 
@@ -26,7 +26,11 @@ class BlastHitParserFast(BlastHitParser):
         :return:
         """
         #input_file_index = parse_contigs_ind(self.input_fasta_path)
+
         input_file_read_cnt, input_file_nt_size = get_nt_size_ext(self.input_fasta_path)
+        if self.write_genome_stats_log:
+            self.write_genome_stats_log(input_file_read_cnt, input_file_nt_size)
+
 
         recruited_mg = self._unique_scaffold_topBits(self.raw_blast_hit_df)
 

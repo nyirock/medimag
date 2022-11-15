@@ -26,6 +26,8 @@ class TestDiversityCalculator(TestCase):
             self.single_file_data0 = pd.read_csv(self.single_file_blast_runner_csv0, sep='\t').drop("Unnamed: 0",
                                                                                                     axis=1)
             self.data0_hit_summary = pd.read_pickle(os.path.join(TEST_DATA_DIR, "m7_1y2_r1_hit_summary.pkl"))
+            self.data_out_table_m71y2_r1r2Unp = pd.read_pickle(os.path.join(TEST_DATA_DIR, "out_table_m71y2_r1r2Unp.pkl"))
+
             self.data_m7_1y2_r12unpaired_hit_summary = pd.read_pickle(os.path.join(TEST_DATA_DIR, "m7_1y2_r12unpaired_hit_summary.pkl"))
 
             self.single_file_data1 = pd.read_csv(self.single_file_blast_runner_csv1, sep='\t').drop("Unnamed: 0",
@@ -40,12 +42,16 @@ class TestDiversityCalculator(TestCase):
             self.three_df_file_load_result_w_frac = pd.read_pickle(self.three_df_blast_runner_loaded_w_frac).drop(
                 "Unnamed: 0", axis=1)
 
+
+
         except IOError:
             tb = traceback.format_exc()
             print(f"Error while loading the fixture file.")
             print(tb)
 
-        self.dc0 = DiversityCalculator(("", self.single_file_blast_runner_csv0), TEST_DATA_DIR)
+        self.dc0 = DiversityCalculator(("R1", self.single_file_blast_runner_csv0), TEST_DATA_DIR)
+        self.dc1 = DiversityCalculator(("R2", self.single_file_blast_runner_csv1), TEST_DATA_DIR)
+        self.dc2 = DiversityCalculator(("Unpaired", self.single_file_blast_runner_csv2), TEST_DATA_DIR)
         self.dc_m7_1y2 = DiversityCalculator(("", self.m7_1y2_r12unpaired_csv3), TEST_DATA_DIR)
 
     ####### __init Tests #############
@@ -135,4 +141,14 @@ class TestDiversityCalculator(TestCase):
         for exp, actual in zip(exp_conc_stats, (self.dc_m7_1y2.concordance.mean, self.dc_m7_1y2.concordance.std, self.dc_m7_1y2.concordance.sem)):
             with self.subTest(msg=f"{exp}: {actual}"):
                 self.assertAlmostEqual(exp, actual)
+
+    def test_get_counts(self):
+        dc_lst = [self.dc0, self.dc1, self.dc2]
+        cnt_lst = map(DiversityCalculator.get_counts, dc_lst)
+        names_lst = map(lambda x: x.sname, dc_lst)
+        otu_table = pd.DataFrame(cnt_lst, index=names_lst).fillna(0).T
+        self.data_out_table_m71y2_r1r2Unp.index.name = 'suid' # to avoid index.name error
+        assert_frame_equal(self.data_out_table_m71y2_r1r2Unp, otu_table)
+
+
 

@@ -29,7 +29,7 @@ def snames2filenames_dict_to_df(dct):
 def extract_sample_names_from_filenames(filenames_lst, identify_pairs, strict_pairs=False):
     """
     """
-    ext_mask = ['fa', 'fna', 'fq', 'fasta', 'fastq', 'fastq', 'gz', 'ac', 'qc', 'qt', 'csv', 'tab', 'rf']
+    ext_mask = ['fa', 'fna', 'fq', 'fasta', 'fastq', 'fastq', 'gz', 'ac', 'qc', 'qt', 'csv', 'tab', 'rf', 'genome', 'stats','tsv']
     snames2files = defaultdict(list)
     tagged = []
     non_tagged = []
