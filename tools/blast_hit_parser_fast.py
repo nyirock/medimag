@@ -41,7 +41,7 @@ class BlastHitParserFast(BlastHitParser):
 
         outfile_path = os.path.join(self.workdir_path, self.outdir_name, self.sname)
         outfile_path_csv = outfile_path + ".csv"
-        write_df_to_csv(recruited_mg, outfile_path_csv)
+        write_df_to_csv(recruited_mg, outfile_path_csv) 
 
 
         return outfile_path_csv

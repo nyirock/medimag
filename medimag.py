@@ -26,9 +26,9 @@ from tools.fasta_utils import parse_contigs_ind
 from tools.make_sample_file import make_sample_file, get_sample_file_dct
 
 #WORKDIR_PATH = os.path.abspath("/media/andriy/SeagateExpansionDrive/out_medimag_pp_old_and_new_nmd_forest_river_qc")
-WORKDIR_PATH = os.path.abspath("out_binatota_bins_fastq")
+WORKDIR_PATH = os.path.abspath("out_blasting")
 #INPUT_DIR_PATH = os.path.abspath("/media/andriy/SeagateExpansionDrive/pp_old_and_new_nmd_forest_river_qc/")
-INPUT_DIR_PATH = os.path.abspath("in_binatota_bins_fastq/")
+INPUT_DIR_PATH = os.path.abspath("in_blasting/")
 # INPUT_DIR_PATH = os.path.abspath("/media/andriy/linuxData/mg/m7_mg/_error_corrected_reads/")
 #WORKDIR_PATH = os.path.abspath("several_mg_raw_doubles_combined_basic_w_qc_no_gz_paired")
 #WORKDIR_PATH = os.path.abspath("/media/andriy/SeagateExpansionDrive/out_large_2pp_closest_delta_pmoA/")
@@ -264,8 +264,7 @@ if __name__ == "__main__":
     # #
     #run_workflow(WORKDIR_PATH, os.path.join(WORKDIR_PATH, ".qc_samples"), REFERENCE_PATH, sample_file_dict=sf, gzipped=True, workflow='fast', qc=False)
     #run_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH, identify_pairs=False, gzipped=False, workflow='fast', qc=False)
-    run_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH, identify_pairs=True, gzipped=False, workflow='fast',
-                 qc=False)
+    # run_workflow(WORKDIR_PATH, INPUT_DIR_PATH, REFERENCE_PATH, identify_pairs=True, gzipped=False, workflow='fast', qc=False)
     #run_workflow(WORKDIR_PATH, os.path.join(WORKDIR_PATH, ".qc_samples"), REFERENCE_PATH, identify_pairs=True, gzipped=True, workflow='fast',
     #             qc=False)
 
@@ -306,11 +305,15 @@ if __name__ == "__main__":
     # pprint(qc_sample_dct)
 
     #### Fixing gzip capability
-    # reformat_sf = init_sample_file(WORKDIR_PATH, WORKDIR_PATH,
-    #                                                               "*rf.fasta*", identify_pairs=False,
-    #                                                              write_to_disk=False)
-    # reformat_sf = add_path_to_sample_dct(reformat_sf, WORKDIR_PATH)
-    # pprint(reformat_sf)
+    reformat_sf = init_sample_file(INPUT_DIR_PATH, INPUT_DIR_PATH, "*.fasta*",
+                                   identify_pairs=False, write_to_disk=False)
+
+    reformat_sf = add_path_to_sample_dct(reformat_sf, INPUT_DIR_PATH)
+    pprint(reformat_sf)
+    #blasted_dct = blast_workflow(reformat_sf, REFERENCE_PATH, WORKDIR_PATH)
+    blasted_dct = custom_blast_workflow(reformat_sf, REFERENCE_PATH, WORKDIR_PATH)
+    pprint(blasted_dct)
+
     # #
     # blasted_sf = init_sample_file(WORKDIR_PATH, WORKDIR_PATH, "*tab", identify_pairs=False, write_to_disk=False)
     # pprint(blasted_sf)
@@ -318,5 +321,6 @@ if __name__ == "__main__":
     # print(blasted_sf)
     # #
     # # pprint(blasted_sf)
-    # parsed_dct = parse_blast_hits_workflow(reformat_sf, blasted_sf, REFERENCE_PATH, WORKDIR_PATH)
-    # pprint(parsed_dct)
+    #parsed_dct = parse_blast_hits_workflow(reformat_sf, blasted_dct, REFERENCE_PATH, WORKDIR_PATH)
+    parsed_dct = parse_blast_hits_fast_workflow(reformat_sf, blasted_dct, REFERENCE_PATH, WORKDIR_PATH)
+    pprint(parsed_dct)
