@@ -8,4 +8,5 @@ E_VAL = 1E-4
 ALEN_PERCENT = 70
 WORKDIR_PATH    = os.path.abspath("out")
 INPUT_DIR_PATH  = os.path.abspath("in")
-REFERENCE_PATH = os.path.abspath("all_pmoA_nr99.fasta")
+# REFERENCE_PATH = os.path.abspath("all_pmoA_nr99.fasta")
+REFERENCE_PATH = os.path.abspath("16s_pmoA_db.fasta")

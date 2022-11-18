@@ -130,7 +130,8 @@ class BlastHitParser():
             recruited_mg['Read_RPKM'] = np.nan
 
     def _unique_scaffold_topBits(self, dataframe):
-        # returns pandas series object
+        """returns pandas series object
+        each metagenomic read is added once according to the highest bitscore"""
         variables = list(dataframe.columns.values)
         scaffolds = dict()
         rows = list()

@@ -26,9 +26,9 @@ from tools.fasta_utils import parse_contigs_ind
 from tools.make_sample_file import make_sample_file, get_sample_file_dct
 
 #WORKDIR_PATH = os.path.abspath("/media/andriy/SeagateExpansionDrive/out_medimag_pp_old_and_new_nmd_forest_river_qc")
-WORKDIR_PATH = os.path.abspath("out_blasting")
+WORKDIR_PATH = os.path.abspath("out_16s_pmoa_together")
 #INPUT_DIR_PATH = os.path.abspath("/media/andriy/SeagateExpansionDrive/pp_old_and_new_nmd_forest_river_qc/")
-INPUT_DIR_PATH = os.path.abspath("in_blasting/")
+INPUT_DIR_PATH = os.path.abspath("in_16s_pmoa_together/")
 # INPUT_DIR_PATH = os.path.abspath("/media/andriy/linuxData/mg/m7_mg/_error_corrected_reads/")
 #WORKDIR_PATH = os.path.abspath("several_mg_raw_doubles_combined_basic_w_qc_no_gz_paired")
 #WORKDIR_PATH = os.path.abspath("/media/andriy/SeagateExpansionDrive/out_large_2pp_closest_delta_pmoA/")
@@ -310,8 +310,8 @@ if __name__ == "__main__":
 
     reformat_sf = add_path_to_sample_dct(reformat_sf, INPUT_DIR_PATH)
     pprint(reformat_sf)
-    #blasted_dct = blast_workflow(reformat_sf, REFERENCE_PATH, WORKDIR_PATH)
-    blasted_dct = custom_blast_workflow(reformat_sf, REFERENCE_PATH, WORKDIR_PATH)
+    blasted_dct = blast_workflow(reformat_sf, REFERENCE_PATH, WORKDIR_PATH)
+    #blasted_dct = custom_blast_workflow(reformat_sf, REFERENCE_PATH, WORKDIR_PATH)
     pprint(blasted_dct)
 
     # #
@@ -321,6 +321,6 @@ if __name__ == "__main__":
     # print(blasted_sf)
     # #
     # # pprint(blasted_sf)
-    #parsed_dct = parse_blast_hits_workflow(reformat_sf, blasted_dct, REFERENCE_PATH, WORKDIR_PATH)
-    parsed_dct = parse_blast_hits_fast_workflow(reformat_sf, blasted_dct, REFERENCE_PATH, WORKDIR_PATH)
+    parsed_dct = parse_blast_hits_workflow(reformat_sf, blasted_dct, REFERENCE_PATH, WORKDIR_PATH)
+    #parsed_dct = parse_blast_hits_fast_workflow(reformat_sf, blasted_dct, REFERENCE_PATH, WORKDIR_PATH)
     pprint(parsed_dct)
