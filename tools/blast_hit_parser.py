@@ -142,7 +142,7 @@ class BlastHitParser():
             if row[1] not in scaffolds:
                 scaffolds[row[1]] = row
             else:
-                if row[12] > scaffolds[row[1]][12]:
+                if row[12] > scaffolds[row[1]][12]: #12th element is bitscore, as it starts from index
                     scaffolds[row[1]] = row
         rows = scaffolds.values()
         df = pd.DataFrame([[getattr(i, j) for j in variables] for i in rows], columns=self.blast_columns)

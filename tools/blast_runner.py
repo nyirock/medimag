@@ -65,13 +65,15 @@ class BlastRunner():
     def _init_blast_dir(self, blast_dir_path, blast_db_dir_name):
         blast_db_dir = os.path.join(blast_dir_path, blast_db_dir_name)
 
+
+
         if os.path.exists(blast_dir_path):
             print("Blast directory exists")
             # shutil.rmtree(blast_db_Dir)
         else:
             try:
-                os.mkdir(blast_dir_path)
-                os.mkdir(blast_db_dir)
+                #os.makedirs(blast_dir_path)
+                os.makedirs(blast_db_dir)
             except OSError:
                 print("ERROR: Cannot create project directory: " + blast_db_dir)
                 raise
