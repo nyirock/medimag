@@ -148,6 +148,66 @@ class BlastHitParser():
         df = pd.DataFrame([[getattr(i, j) for j in variables] for i in rows], columns=self.blast_columns)
         return df
 
+    def _unique_scaffold_topBits_gives_less_sequences(self, dataframe):
+        """Filtering using pandas capabilities"""
+        variables = list(dataframe.columns.values)
+        scaffolds = dict()
+        rows = list()
+
+        mmf_sorted = dataframe.sort_values(['bits'], ascending=False)
+        mmf_sorted_unique = mmf_sorted.drop_duplicates(subset=['quid'], keep="first")
+        mmf_sorted_unique
+
+
+        # rows = scaffolds.values()
+        # df = pd.DataFrame([[getattr(i, j) for j in variables] for i in rows], columns=self.blast_columns)
+        return mmf_sorted_unique
+
+    def _unique_scaffold_topBits_group_SortBits(self, dataframe):
+    # def _unique_scaffold_topBits_groupby_sortBits(self, dataframe):
+        """sorts only within a group, not a general sort
+        takes ~2x longer
+        returns same values as default"""
+        variables = list(dataframe.columns.values)
+        scaffolds = dict()
+        rows = list()
+        for i, group in dataframe.groupby('quid'):
+            srt_group = group.sort_values('bits', ascending=False)
+            # for row in srt_group.itertuples():
+            #     scaffolds[row[1]] = row
+            #     break #get the first element and get out
+
+            rows.append(group.iloc[0, :])
+
+        #rows = scaffolds.values()
+        df = pd.DataFrame(rows)
+        return df
+
+    # def _unique_scaffold_topBits(self, dataframe):
+    def _unique_scaffold_topBits_groupby_sortBitsAlenEvalIden(self, dataframe):
+        """sorts only within a group, not a general sort
+        takes ~4x longer
+        resturs the same as sorting just by bitscore and
+        pre-sorting reduces the amount of recruited sequences
+        the same values as default"""
+        variables = list(dataframe.columns.values)
+        scaffolds = dict()
+        rows = list()
+        #pre-sorting that often reduces number of sequences
+        dataframe.sort_values(['bits'], ascending=False, inplace=True)
+        for i, group in dataframe.groupby('quid'):
+            srt_group = group.sort_values(['bits', 'alen', 'eval', 'iden'],
+                                          ascending=[False, False, True, False])
+            # for row in srt_group.itertuples():
+            #     scaffolds[row[1]] = row
+            #     break #get the first element and get out
+
+            rows.append(group.iloc[0, :])
+
+        #rows = scaffolds.values()
+        df = pd.DataFrame(rows)
+        return df
+
 
 
 
