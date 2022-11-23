@@ -46,7 +46,8 @@ class BlastHitParser():
         input_file_read_cnt = len(input_file_index)
         if self.write_genome_stats_log:
             self.write_genome_stats_log(input_file_read_cnt, input_file_nt_size)
-        recruited_mg = self._unique_scaffold_topBits(self.raw_blast_hit_df)
+        recruited_mg = self._unique_queries_top_scored(self.raw_blast_hit_df)
+        #recruited_mg = self._unique_queries_top_scored_pandas(self.raw_blast_hit_df)
 
         self._calculate_metrics(input_file_index, input_file_nt_size, recruited_mg)
 
@@ -129,9 +130,14 @@ class BlastHitParser():
         except:
             recruited_mg['Read_RPKM'] = np.nan
 
-    def _unique_scaffold_topBits(self, dataframe):
+    def _unique_queries_top_scored(self, dataframe):
         """returns pandas series object
-        each metagenomic read is added once according to the highest bitscore"""
+        each metagenomic read is added once in the order of
+         the highest bitscore, lowest eval, highest alen, highest iden.
+         In case of ties by all four parameters the first hit is returned.
+         ~4x more efficient than using pandas capabilities
+         """
+
         variables = list(dataframe.columns.values)
         scaffolds = dict()
         rows = list()
@@ -140,76 +146,58 @@ class BlastHitParser():
 
             # if row[1]=='Ga0073928_10002560':
             if row[1] not in scaffolds:
+                #first entry
                 scaffolds[row[1]] = row
             else:
+                #entering the sorting stage
+                #max bits
                 if row[12] > scaffolds[row[1]][12]: #12th element is bitscore, as it starts from index
+                    scaffolds[row[1]] = row
+                #equal bits but min eval
+                elif (row[12] == scaffolds[row[1]][12]) and (row[11] < scaffolds[row[1]][11]):
+                    scaffolds[row[1]] = row
+                elif (row[12] == scaffolds[row[1]][12]) and (row[11] == scaffolds[row[1]][11]) and (row[4] > scaffolds[row[1]][4]):
+                    scaffolds[row[1]] = row
+                elif (row[12] == scaffolds[row[1]][12]) and (row[11] == scaffolds[row[1]][11]) and (row[4] > scaffolds[row[1]][4]) and (row[3] > scaffolds[row[1]][3]):
                     scaffolds[row[1]] = row
         rows = scaffolds.values()
         df = pd.DataFrame([[getattr(i, j) for j in variables] for i in rows], columns=self.blast_columns)
         return df
 
-    def _unique_scaffold_topBits_gives_less_sequences(self, dataframe):
-        """Filtering using pandas capabilities"""
+    def _unique_queries_top_scored_pandas(self, dataframe):
+    # def _unique_queries_top_scored(self, dataframe):
+        """Another helper function to decide the best hit within a group
+        Sorting a group by ['bits', 'eval', 'alen', 'iden'] gives so far the max amt of hits
+        with the default settings
+        ~4x slower than the iterative version"""
         variables = list(dataframe.columns.values)
         scaffolds = dict()
         rows = list()
 
-        mmf_sorted = dataframe.sort_values(['bits'], ascending=False)
-        mmf_sorted_unique = mmf_sorted.drop_duplicates(subset=['quid'], keep="first")
-        mmf_sorted_unique
 
-
-        # rows = scaffolds.values()
-        # df = pd.DataFrame([[getattr(i, j) for j in variables] for i in rows], columns=self.blast_columns)
-        return mmf_sorted_unique
-
-    def _unique_scaffold_topBits_group_SortBits(self, dataframe):
-    # def _unique_scaffold_topBits_groupby_sortBits(self, dataframe):
-        """sorts only within a group, not a general sort
-        takes ~2x longer
-        returns same values as default"""
-        variables = list(dataframe.columns.values)
-        scaffolds = dict()
-        rows = list()
         for i, group in dataframe.groupby('quid'):
-            srt_group = group.sort_values('bits', ascending=False)
+            #srt_group = group.sort_values('bits', ascending=False)
             # for row in srt_group.itertuples():
             #     scaffolds[row[1]] = row
             #     break #get the first element and get out
 
-            rows.append(group.iloc[0, :])
+            rows.append(self.__get_best_hit(group))
 
         #rows = scaffolds.values()
         df = pd.DataFrame(rows)
         return df
 
-    # def _unique_scaffold_topBits(self, dataframe):
-    def _unique_scaffold_topBits_groupby_sortBitsAlenEvalIden(self, dataframe):
-        """sorts only within a group, not a general sort
-        takes ~4x longer
-        resturs the same as sorting just by bitscore and
-        pre-sorting reduces the amount of recruited sequences
-        the same values as default"""
-        variables = list(dataframe.columns.values)
-        scaffolds = dict()
-        rows = list()
-        #pre-sorting that often reduces number of sequences
-        dataframe.sort_values(['bits'], ascending=False, inplace=True)
-        for i, group in dataframe.groupby('quid'):
-            srt_group = group.sort_values(['bits', 'alen', 'eval', 'iden'],
-                                          ascending=[False, False, True, False])
-            # for row in srt_group.itertuples():
-            #     scaffolds[row[1]] = row
-            #     break #get the first element and get out
-
-            rows.append(group.iloc[0, :])
-
-        #rows = scaffolds.values()
-        df = pd.DataFrame(rows)
-        return df
-
-
-
-
-
+    def __get_best_hit(self, df):
+        """
+        In case of a tie, the first reference sequence is returned
+        Gives more sequences than default
+        :param df: hits dataframe for a given metagenomic read
+        :return: The top hit of input dataframe
+        """
+        assert len(df) > 0, "Zero length hits group dataframe provided"
+        if len(df) == 1:
+            return df.iloc[0, :]
+        else:
+            return df.sort_values(['bits', 'eval', 'alen', 'iden'],
+                                      ascending=[False, True, False, False]).iloc[0, :]
 

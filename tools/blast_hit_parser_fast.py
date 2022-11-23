@@ -32,7 +32,7 @@ class BlastHitParserFast(BlastHitParser):
             self.write_genome_stats_log(input_file_read_cnt, input_file_nt_size)
 
 
-        recruited_mg = self._unique_scaffold_topBits(self.raw_blast_hit_df)
+        recruited_mg = self._unique_queries_top_scored(self.raw_blast_hit_df)
 
         self._calculate_metrics(input_file_read_cnt, input_file_nt_size, recruited_mg)
 
