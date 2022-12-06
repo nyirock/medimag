@@ -1,4 +1,6 @@
-pandas==1.0.5
-statsmodels==0.11.1
-biopython==1.78
-seqkit=0.15.0
+pandas
+statsmodels
+biopython
+#seqkit #doesn't work with pip: binary or anaconda
+#blast+ #installed locally
+#parallel #local as well

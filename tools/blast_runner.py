@@ -82,7 +82,8 @@ class BlastRunner():
 
     def _make_blast_db(self, reference_path, db_path):
         db_path = os.path.join(db_path, self.blast_db_name)
-        build_blast_db_cmd = ['makeblastdb', '-in', reference_path, '-dbtype', 'nucl', '-out', db_path , '-parse_seqids']
+        # build_blast_db_cmd = ['makeblastdb', '-in', reference_path, '-dbtype', 'nucl', '-out', db_path , '-parse_seqids']
+        build_blast_db_cmd = ['makeblastdb', '-in', reference_path, '-dbtype', 'nucl', '-out', db_path]
         process = Popen(build_blast_db_cmd, stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
         if process.returncode != 0:
