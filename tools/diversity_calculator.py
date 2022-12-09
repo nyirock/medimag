@@ -3,7 +3,6 @@ from collections import namedtuple
 from typing import List
 import pandas as pd
 import numpy as np
-import numpy as np
 from statsmodels.stats.weightstats import DescrStatsW
 
 from tools.fs import init_dir
@@ -11,6 +10,7 @@ from tools.fs import init_dir
 Concordance = namedtuple('Concordance', 'mean std sem')
 
 class DiversityCalculator(object):
+    #TODO: add percentage counts -> inside blast hit parser
     """
     Performs parsing of the recruited hits stats, calculating copy numbers in a sample
     with different metrics:
@@ -44,6 +44,8 @@ class DiversityCalculator(object):
             self.no_hits = True
             #TODO: implement better the case for no hits
             return
+
+        
         self._convert_iden_percent_to_frac()
         self.reference_hit_summary = self._summarize_reference_hits(self.reference_hits)
         self.concordance = Concordance(*self._calculate_concordance_stats())
@@ -150,4 +152,5 @@ class DiversityCalculator(object):
 
     def calculate_novelty(self):
         return len(self.reference_hits[self.reference_hits.iden < self.concordance.mean])/len(self.reference_hits)
+
 
