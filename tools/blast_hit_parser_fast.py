@@ -46,7 +46,7 @@ class BlastHitParserFast(BlastHitParser):
 
         return outfile_path_csv
 
-    def total_base_pairs_calculate_metrics(self, input_file_read_cnt, input_file_nt_size, recruited_mg):
+    def _calculate_metrics(self, input_file_read_cnt, input_file_nt_size, recruited_mg):
         """
         Two columns 'Contig_nt', 'Contig_GC'  are removed here compared with the parent method
         :param input_file_index:
