@@ -39,6 +39,9 @@ def load_blast_hits_to_df(filepath):
     df.columns = blast_cols
     return df
 
+def load_reference_groping(filepath):
+    pass
+
 
 def init_dir(path, inner_dir_name="", force_del=False):
     inner_dir_path = os.path.join(os.path.abspath(path), inner_dir_name)
@@ -53,6 +56,8 @@ def init_dir(path, inner_dir_name="", force_del=False):
     else:
         mkdir(inner_dir_path)
     return inner_dir_path
+
+
 
 
 

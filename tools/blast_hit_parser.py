@@ -17,6 +17,9 @@ from tools.fs import write_df_to_csv, write_dct_to_csv
 
 class BlastHitParser():
     #TODO: maye use inheritance to remove duplication in out_dir_name (inherit both this and BlastRunner from a parent)
+    """
+    Much slower than a fast parser, but provides sequence data for the recruited reads and GC values
+    """
     def __init__(self, sname2fasta_path_tpl, ref_index, raw_blast_hit_df_path, workdir_path,
                  outdir_name="blast", logs_dir_name = "logs",
                  custom_blast_columns_lst=[], genome_stats_log=False):
@@ -44,12 +47,13 @@ class BlastHitParser():
         input_file_index = parse_contigs_ind(self.input_fasta_path)
         input_file_nt_size = get_nt_size(input_file_index)
         input_file_read_cnt = len(input_file_index)
+        #TODO: this is a mistake, it's not a function but a variable: Move log writing to blast_runner, maybe in a separate thread
         if self.write_genome_stats_log:
             self.write_genome_stats_log(input_file_read_cnt, input_file_nt_size)
         recruited_mg = self._unique_queries_top_scored(self.raw_blast_hit_df)
         #recruited_mg = self._unique_queries_top_scored_pandas(self.raw_blast_hit_df)
 
-        self._calculate_metrics(input_file_index, input_file_nt_size, recruited_mg)
+        self._calculate_metrics(input_file_index, input_file_nt_size, input_file_read_cnt, recruited_mg)
 
         recruited_mg = self.order_columns(recruited_mg)
         recruited_mg = self.filter_hits(recruited_mg)
@@ -100,12 +104,12 @@ class BlastHitParser():
     def order_columns(self, recruited_mg):
         return recruited_mg[
             ['quid', 'suid', 'iden', 'alen', 'Coverage', 'Metric', 'mism', 'gapo', 'qsta', 'qend', 'ssta', 'send',
-             'eval', 'bits', 'Ref_size', 'Ref_GC', 'Contig_size', 'Contig_GC', 'Read_RPKM', 'Read_RPKM_wt',
+             'eval', 'bits', 'Ref_size', 'Ref_GC', 'Contig_size', 'Contig_GC', 'Contig_percent', 'Read_RPKM', 'Read_RPKM_wt',
              'Contig_nt']]
 
-    def _calculate_metrics(self, input_file_index, input_file_nt_size, recruited_mg):
+    def _calculate_metrics(self, input_file_index, input_file_nt_size, input_file_read_cnt, recruited_mg):
         contig_list = recruited_mg['quid'].tolist()
-        recruited_mg['Contig_nt'] = retrive_sequence(contig_list, input_file_index)
+        recruited_mg['Contig_nt'] = retrive_sequence(contig_list, input_file_index) #nucleotide sequence for the retrieved contig
         recruited_mg['Contig_size'] = recruited_mg['Contig_nt'].apply(lambda x: len(x))
         # recruited_mg[i]['Ref_nt']=recruited_mg[i]['suid'].apply(lambda x: self.ref_index[str(x)].seq)
         recruited_mg['Ref_size'] = recruited_mg['suid'].apply(lambda x: len(self.ref_index[str(x)]))
@@ -121,6 +125,9 @@ class BlastHitParser():
             recruited_mg['Contig_GC'] = recruited_mg['Contig_nt'].apply(lambda x: GC(x))
         except:
             recruited_mg['Contig_GC'] = recruited_mg['Contig_nt'].apply(lambda x: None)
+
+        self._insert_contig_percent_col(input_file_read_cnt, recruited_mg)
+
         try:
             recruited_mg['Read_RPKM'] = 1.0 / (
                     (recruited_mg['Ref_size'] / 1000.0) * (len(input_file_index) / 1000000.0))
@@ -129,6 +136,10 @@ class BlastHitParser():
                     (recruited_mg['Ref_size'] / 1000.0) * (input_file_nt_size / 1000000.0))
         except:
             recruited_mg['Read_RPKM'] = np.nan
+
+    def _insert_contig_percent_col(self, input_file_read_cnt, recruited_mg):
+        assert input_file_read_cnt > 0, "Number of genomic reads has to be more than zero"
+        recruited_mg['Contig_percent'] = 100.0 / input_file_read_cnt
 
     def _unique_queries_top_scored(self, dataframe):
         """returns pandas series object

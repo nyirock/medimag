@@ -305,14 +305,9 @@ if __name__ == "__main__":
     # pprint(qc_sample_dct)
 
     #### Fixing gzip capability
-    reformat_sf = init_sample_file(INPUT_DIR_PATH, INPUT_DIR_PATH, "*.fasta*",
-                                   identify_pairs=False, write_to_disk=False)
 
-    reformat_sf = add_path_to_sample_dct(reformat_sf, INPUT_DIR_PATH)
-    pprint(reformat_sf)
     # blasted_dct = blast_workflow(reformat_sf, REFERENCE_PATH, WORKDIR_PATH)
-    blasted_dct = custom_blast_workflow(reformat_sf, REFERENCE_PATH, WORKDIR_PATH)
-    pprint(blasted_dct)
+
 
     # #
     # blasted_sf = init_sample_file(WORKDIR_PATH, WORKDIR_PATH, "*tab", identify_pairs=False, write_to_disk=False)
@@ -322,5 +317,45 @@ if __name__ == "__main__":
     # #
     # # pprint(blasted_sf)
     # parsed_dct = parse_blast_hits_workflow(reformat_sf, blasted_dct, REFERENCE_PATH, WORKDIR_PATH)
-    parsed_dct = parse_blast_hits_fast_workflow(reformat_sf, blasted_dct, REFERENCE_PATH, WORKDIR_PATH)
-    pprint(parsed_dct)
+
+
+    ############## CURRENT BLASTING WORKFLOW #######################################
+    # reformat_sf = init_sample_file(INPUT_DIR_PATH, INPUT_DIR_PATH, "*.fasta*",
+    #                                identify_pairs=False, write_to_disk=False)
+    # reformat_sf = add_path_to_sample_dct(reformat_sf, INPUT_DIR_PATH)
+    # pprint(reformat_sf)
+    # blasted_dct = custom_blast_workflow(reformat_sf, REFERENCE_PATH, WORKDIR_PATH)
+    # pprint(blasted_dct)
+    # parsed_dct = parse_blast_hits_fast_workflow(reformat_sf, blasted_dct, REFERENCE_PATH, WORKDIR_PATH)
+    # pprint(parsed_dct)
+
+    #################################################################################
+    #Diversity calculator from csv-files
+    # csv_dct = init_sample_file(WORKDIR_PATH, INPUT_DIR_PATH, identify_pairs=False, file_mask="*csv", write_to_disk=True,
+    #                  strict_pairs=False)
+    #
+    # csv_dct_w_path = add_path_to_sample_dct(csv_dct, INPUT_DIR_PATH)
+    # pprint(csv_dct_w_path)
+
+
+    ###### Getting Sample stats #####################
+    parsed_dct = {'mg_large': '/home/dunfield/Documents/andriy/medimag/out_16s_mg_large_fast/blast/mg_large.csv'}
+    dc_lst = []
+    for sname,filepath in parsed_dct.items():
+        dc_tmp = DiversityCalculator((sname, filepath), WORKDIR_PATH)
+        if dc_tmp.no_hits:
+            continue
+        dc_lst.append(dc_tmp)
+    for dc_obj in dc_lst:
+        write_df_to_csv(dc_obj.reference_hit_summary, os.path.join(WORKDIR_PATH, dc_obj.sname+"_hit_summary.tsv"))
+    ######## End Sample stats #######################
+
+    #OTU table-specific
+
+
+    # cnt_lst = map(DiversityCalculator.get_counts, dc_lst)
+    # print(dc_lst)
+    # names_lst = map(lambda x: x.sname, dc_lst)
+    # print(list(names_lst))
+    # otu_table = pd.DataFrame(cnt_lst, index=names_lst).fillna(0).T
+    # write_df_to_csv(otu_table, os.path.join(WORKDIR_PATH, "otu_table.tsv"))
