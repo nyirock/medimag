@@ -34,7 +34,7 @@ class BlastHitParserFast(BlastHitParser):
 
         recruited_mg = self._unique_queries_top_scored(self.raw_blast_hit_df)
 
-        self._calculate_metrics(input_file_read_cnt, input_file_nt_size, recruited_mg)
+        self._calculate_metrics(input_file_nt_size, input_file_read_cnt, recruited_mg)
 
         recruited_mg = self.order_columns(recruited_mg)
         recruited_mg = self.filter_hits(recruited_mg)
@@ -46,7 +46,7 @@ class BlastHitParserFast(BlastHitParser):
 
         return outfile_path_csv
 
-    def _calculate_metrics(self, input_file_read_cnt, input_file_nt_size, recruited_mg):
+    def _calculate_metrics(self, input_file_nt_size, input_file_read_cnt, recruited_mg):
         """
         Two columns 'Contig_nt', 'Contig_GC'  are removed here compared with the parent method
         :param input_file_index:
@@ -74,6 +74,9 @@ class BlastHitParserFast(BlastHitParser):
         #-----     recruited_mg['Contig_GC'] = recruited_mg['Contig_nt'].apply(lambda x: GC(x))
         #----- except:
         #-----     recruited_mg['Contig_GC'] = recruited_mg['Contig_nt'].apply(lambda x: None)
+
+        self._insert_contig_percent_col(input_file_read_cnt, recruited_mg)
+
         try:
             recruited_mg['Read_RPKM'] = 1.0 / (
                     (recruited_mg['Ref_size'] / 1000.0) * (input_file_read_cnt / 1000000.0))
@@ -86,4 +89,4 @@ class BlastHitParserFast(BlastHitParser):
     def order_columns(self, recruited_mg):
         return recruited_mg[
             ['quid', 'suid', 'iden', 'alen', 'Coverage', 'Metric', 'mism', 'gapo', 'qsta', 'qend', 'ssta', 'send',
-             'eval', 'bits', 'Ref_size', 'Ref_GC', 'Contig_size', 'Read_RPKM', 'Read_RPKM_wt']]
+             'eval', 'bits', 'Ref_size', 'Ref_GC', 'Contig_size', 'Contig_percent', 'Read_RPKM', 'Read_RPKM_wt']]

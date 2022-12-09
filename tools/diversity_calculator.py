@@ -117,6 +117,7 @@ class DiversityCalculator(object):
             d['Ref_Size'] = x['Ref_size'].mean()
             d['Total_Reads'] = x['suid'].count()
             d['Total_aligned_nt'] = x['alen'].sum()
+            d['Total_percent'] = x['Contig_percent'].sum()
             d['Total_RPKM'] = x['Read_RPKM'].sum()
             d['Theoretical_Copies'] = d['Total_aligned_nt'] / d['Ref_Size']
             d['Total_RPKM_wt'] = x['Read_RPKM_wt'].sum()

@@ -336,6 +336,9 @@ if __name__ == "__main__":
     #
     # csv_dct_w_path = add_path_to_sample_dct(csv_dct, INPUT_DIR_PATH)
     # pprint(csv_dct_w_path)
+
+
+    ###### Getting Sample stats #####################
     parsed_dct = {'mg_large': '/home/dunfield/Documents/andriy/medimag/out_16s_mg_large_fast/blast/mg_large.csv'}
     dc_lst = []
     for sname,filepath in parsed_dct.items():
@@ -343,11 +346,9 @@ if __name__ == "__main__":
         if dc_tmp.no_hits:
             continue
         dc_lst.append(dc_tmp)
-    #
-
-    ## let's save sample summaries
     for dc_obj in dc_lst:
         write_df_to_csv(dc_obj.reference_hit_summary, os.path.join(WORKDIR_PATH, dc_obj.sname+"_hit_summary.tsv"))
+    ######## End Sample stats #######################
 
     #OTU table-specific
 
